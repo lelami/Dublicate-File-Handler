@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"bufio"
@@ -19,7 +19,7 @@ type File struct {
 	Path string
 }
 
-func main() {
+func Run() {
 	if len(os.Args) != 2 {
 		fmt.Println("Directory is not specified")
 		return
