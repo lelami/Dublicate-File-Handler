@@ -2,10 +2,10 @@ package service
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 )
 
 func ReadExtension() string {
@@ -40,34 +40,48 @@ func ReadDeleting(maxInd int) []int {
 		return nil
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Split(bufio.ScanLines) // TODO придумать твою сплит функцию по словам или по байтам
+	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
-enterInds:
-	fmt.Println("\nEnter file numbers to delete:")
+		advance, token, err = bufio.ScanWords(data, atEOF)
 
-	var inds []int
-	for scanner.Scan() {
-		choiseStr := scanner.Text()
-
-		strInds := strings.Split(choiseStr, " ")
-		for _, sind := range strInds {
-			ind, err := strconv.Atoi(sind)
-			if err != nil || (ind < 1 || ind > maxInd) {
-				fmt.Println("\nWrong format")
-				goto enterInds
+		if err == nil && token != nil {
+			ind, er := strconv.ParseInt(string(token), 10, 0)
+			if er != nil {
+				return advance, token, er
 			}
+
+			if ind < 0 || int(ind) > maxInd {
+				return advance, token, errors.New("wrong index")
+			}
+
+			if data[len(token)] == '\n' {
+				return 0, token, bufio.ErrFinalToken
+			}
+		}
+
+		return advance, token, err
+	}
+
+	for {
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Split(split)
+
+		fmt.Println("\nEnter file numbers to delete:")
+
+		var inds []int
+		for scanner.Scan() {
+			indStr := scanner.Text()
+			ind, _ := strconv.Atoi(indStr)
 			inds = append(inds, ind)
 		}
-		break
-	}
 
-	if err := scanner.Err(); err != nil {
+		if err := scanner.Err(); err == nil {
+			return inds
+		}
+
 		fmt.Println("\nWrong format")
-		goto enterInds
-	}
-	return inds
 
+	}
 }
 
 func ReadFindDuplicates() bool {
