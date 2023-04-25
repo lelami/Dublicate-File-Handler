@@ -43,15 +43,16 @@ func ReadDeleting(maxInd int) []int {
 	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
 		advance, token, err = bufio.ScanWords(data, atEOF)
+		if err == nil {
+			if token != nil {
+				ind, er := strconv.ParseInt(string(token), 10, 0)
+				if er != nil {
+					return advance, token, er
+				}
 
-		if err == nil && token != nil {
-			ind, er := strconv.ParseInt(string(token), 10, 0)
-			if er != nil {
-				return advance, token, er
-			}
-
-			if ind < 0 || int(ind) > maxInd {
-				return advance, token, errors.New("wrong index")
+				if ind < 0 || int(ind) > maxInd {
+					return advance, token, errors.New("wrong index")
+				}
 			}
 
 			if data[len(token)] == '\n' {
@@ -71,11 +72,13 @@ func ReadDeleting(maxInd int) []int {
 		var inds []int
 		for scanner.Scan() {
 			indStr := scanner.Text()
-			ind, _ := strconv.Atoi(indStr)
-			inds = append(inds, ind)
+			ind, err := strconv.Atoi(indStr)
+			if err == nil {
+				inds = append(inds, ind)
+			}
 		}
 
-		if err := scanner.Err(); err == nil {
+		if err := scanner.Err(); err == nil && len(inds) != 0 {
 			return inds
 		}
 
